@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/ibrt/errors"
+
 	"github.com/aws/aws-lambda-go/events"
 )
 
@@ -39,10 +41,7 @@ func StatusCode(statusCode int) ResponseOption {
 func JSONBody(body interface{}) ResponseOption {
 	return func(_ context.Context, resp *events.APIGatewayProxyResponse) {
 		buf, err := json.MarshalIndent(body, "", "  ")
-		if err != nil {
-			panic(err)
-		}
-
+		errors.MaybeMustWrap(err)
 		resp.Headers["Content-Type"] = "application/json; charset=utf-8"
 		resp.Body = string(buf)
 		resp.IsBase64Encoded = false

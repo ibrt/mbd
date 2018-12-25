@@ -3,7 +3,6 @@ package mbd
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 	"reflect"
 	"strings"
 
@@ -11,18 +10,11 @@ import (
 	"github.com/ibrt/errors"
 )
 
-var (
-	BadEncodingPublicMessage    = errors.PublicMessage("bad-encoding")
-	BadContentTypePublicMessage = errors.PublicMessage("bad-content-type")
-	BadJSONPublicMessage        = errors.PublicMessage("bad-json")
-)
-
 func JSONBodyAdapter(reqType reflect.Type, options ...JSONBodyAdapterOption) BodyAdapter {
 	errors.Assert(reqType.Kind() == reflect.Struct, "request type kind must be struct")
 
 	return func(ctx context.Context, in events.APIGatewayProxyRequest) interface{} { // BodyAdapter
-		errors.Assert(!in.IsBase64Encoded, "bad IsBase64Encoded: expected 'false', got 'true'",
-			errors.HTTPStatus(http.StatusBadRequest), BadEncodingPublicMessage)
+		errors.Assert(!in.IsBase64Encoded, "bad IsBase64Encoded: expected 'false', got 'true'", BadEncoding)
 
 		req := reflect.New(reqType).Interface()
 		dec := json.NewDecoder(strings.NewReader(in.Body))
@@ -31,7 +23,7 @@ func JSONBodyAdapter(reqType reflect.Type, options ...JSONBodyAdapterOption) Bod
 			option(ctx, in, dec)
 		}
 
-		errors.MaybeMustWrap(dec.Decode(req), errors.HTTPStatus(http.StatusBadRequest), BadJSONPublicMessage)
+		errors.MaybeMustWrap(dec.Decode(req), BadJSON)
 		return req
 	}
 }

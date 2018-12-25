@@ -4,6 +4,10 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/ibrt/errors v1.0.3 h1:6I1lqDTRTFq5eb0wn6om44AIC4qBgFBJsO/yYaXyxSY=
 github.com/ibrt/errors v1.0.3/go.mod h1:oLodttBFOmv7/F0H/qZBuo9mHCmDxwL6k2f7kDOCgYs=
+github.com/ibrt/errors v1.1.0 h1:hodPyWVVsY8YDMkuKQRm7hY1WzY9ooeO8lQmNAUPtLA=
+github.com/ibrt/errors v1.1.0/go.mod h1:oLodttBFOmv7/F0H/qZBuo9mHCmDxwL6k2f7kDOCgYs=
+github.com/ibrt/errors v1.1.1 h1:3RgfZNckxekTjpyOeH9PMliIDVTnwJktQAPNexNiXFw=
+github.com/ibrt/errors v1.1.1/go.mod h1:oLodttBFOmv7/F0H/qZBuo9mHCmDxwL6k2f7kDOCgYs=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1w=

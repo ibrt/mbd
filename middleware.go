@@ -57,7 +57,8 @@ func PanicMiddleware(errorAdapter ErrorAdapter) Middleware {
 	}
 }
 
-// BodyMiddleware returns a Middleware that parses the request body using the given BodyAdapter.
+// BodyMiddleware returns a Middleware that parses the request body using the given BodyAdapter and adds it to the
+// context. Use GetBody to retrieve it in Handler.
 func BodyMiddleware(bodyAdapter BodyAdapter) Middleware {
 	return func(next Handler) Handler { // Middleware
 		return func(ctx context.Context, in events.APIGatewayProxyRequest) events.APIGatewayProxyResponse { // Handler
