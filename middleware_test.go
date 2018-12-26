@@ -115,4 +115,13 @@ func TestValidatorMiddleware(t *testing.T) {
 			context.Background(),
 			events.APIGatewayProxyRequest{})
 	})
+
+	require.NotPanics(t, func() {
+		mbd.ValidatorMiddleware(func(ctx context.Context, in events.APIGatewayProxyRequest) { /* noop */ })(
+			func(ctx context.Context, in events.APIGatewayProxyRequest) events.APIGatewayProxyResponse {
+				return events.APIGatewayProxyResponse{}
+			})(
+			context.Background(),
+			events.APIGatewayProxyRequest{})
+	})
 }
