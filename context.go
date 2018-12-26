@@ -22,7 +22,7 @@ func GetDebug(ctx context.Context) bool {
 	return false
 }
 
-// With debug adds the given debug flag to context.
+// WithDebug adds the given debug flag to context.
 // It is mainly meant to be used by DebugMiddleware.
 func WithDebug(ctx context.Context, debug bool) context.Context {
 	return context.WithValue(ctx, debugContextKey, debug)

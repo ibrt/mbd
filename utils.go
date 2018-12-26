@@ -16,6 +16,13 @@ func ContextProviders(ctxProviders ...ContextProvider) ContextProvider {
 	}
 }
 
+// StaticContextProvider returns a ContextProvider that sets the given key/value pair on the context.
+func StaticContextProvider(key, value interface{}) ContextProvider {
+	return func(ctx context.Context) context.Context {
+		return context.WithValue(ctx, key, value)
+	}
+}
+
 // Middlewares combines the given Middleware(s) into single one.
 func Middlewares(middlewares ...Middleware) Middleware {
 	return func(next Handler) Handler { // Middleware

@@ -10,6 +10,8 @@ import (
 	"github.com/ibrt/errors"
 )
 
+// JSONBodyAdapter returns a BodyAdapter that parses a JSON body into a struct of the given type.
+// Note that reqType.Kind() must equal reflect.Struct, but the value returned by the adapter will be a pointer to it.
 func JSONBodyAdapter(reqType reflect.Type, options ...JSONBodyAdapterOption) BodyAdapter {
 	errors.Assert(reqType.Kind() == reflect.Struct, "request type kind must be struct")
 
@@ -28,12 +30,14 @@ func JSONBodyAdapter(reqType reflect.Type, options ...JSONBodyAdapterOption) Bod
 	}
 }
 
+// JSONDecoderDisallowUnknownFields returns a JSONBodyAdapterOption that calls DisallowUnknownFields().
 func JSONDecoderDisallowUnknownFields() JSONBodyAdapterOption {
 	return func(ctx context.Context, in events.APIGatewayProxyRequest, dec *json.Decoder) { // JSONBodyAdapterOption
 		dec.DisallowUnknownFields()
 	}
 }
 
+// JSONDecoderUseNumber returns a JSONBodyAdapterOption that calls UseNumber().
 func JSONDecoderUseNumber() JSONBodyAdapterOption {
 	return func(ctx context.Context, in events.APIGatewayProxyRequest, dec *json.Decoder) { // JSONBodyAdapterOption
 		dec.UseNumber()
