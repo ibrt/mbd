@@ -27,6 +27,8 @@ var testCases = []testCase{
 	{fmt.Errorf("test error"), http.StatusInternalServerError, "internal-server-error", "test error"},
 	{errors.Errorf("test error"), http.StatusInternalServerError, "internal-server-error", "test error"},
 	{errors.Errorf("test error", mbd.BadEncoding), http.StatusBadRequest, "bad-encoding", "test error"},
+	{errors.Errorf("test error", errors.HTTPStatus(http.StatusTeapot)), http.StatusTeapot, "i-am-a-teapot", "test error"},
+	{errors.Errorf("test error", errors.HTTPStatus(499)), 499, "unknown-error", "test error"},
 }
 
 func TestDefaultErrorAdapter(t *testing.T) {
