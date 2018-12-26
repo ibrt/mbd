@@ -18,7 +18,6 @@ import (
 func NewResponse(ctx context.Context, options ...ResponseOption) events.APIGatewayProxyResponse {
 	resp := events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
-		Headers:    make(map[string]string),
 	}
 
 	for _, option := range options {
@@ -39,10 +38,10 @@ func StatusCode(statusCode int) ResponseOption {
 // It panics in case json.Marshal returns an error.
 // The "Content-Type" header is set to "application/json; charset=utf-8".
 func JSONBody(body interface{}) ResponseOption {
-	return func(_ context.Context, resp *events.APIGatewayProxyResponse) {
+	return func(ctx context.Context, resp *events.APIGatewayProxyResponse) {
 		buf, err := json.MarshalIndent(body, "", "  ")
 		errors.MaybeMustWrap(err)
-		resp.Headers["Content-Type"] = "application/json; charset=utf-8"
+		Header("Content-Type", "application/json; charset=utf-8")(ctx, resp)
 		resp.Body = string(buf)
 		resp.IsBase64Encoded = false
 	}
@@ -51,8 +50,8 @@ func JSONBody(body interface{}) ResponseOption {
 // BinaryBody returns a ResponseOption that encodes the given body to base64 and sets it on the response.
 // The "Content-Type" header is set to the given string.
 func BinaryBody(body []byte, contentType string) ResponseOption {
-	return func(_ context.Context, resp *events.APIGatewayProxyResponse) {
-		resp.Headers["Content-Type"] = contentType
+	return func(ctx context.Context, resp *events.APIGatewayProxyResponse) {
+		Header("Content-Type", contentType)(ctx, resp)
 		resp.Body = base64.StdEncoding.EncodeToString(body)
 		resp.IsBase64Encoded = true
 	}
@@ -62,8 +61,8 @@ func BinaryBody(body []byte, contentType string) ResponseOption {
 // The "Content-Type" header is set to the given string.
 // The IsBase64Encoded flag is also set as provided.
 func StringBody(body, contentType string, isBase64Encoded bool) ResponseOption {
-	return func(_ context.Context, resp *events.APIGatewayProxyResponse) {
-		resp.Headers["Content-Type"] = contentType
+	return func(ctx context.Context, resp *events.APIGatewayProxyResponse) {
+		Header("Content-Type", contentType)(ctx, resp)
 		resp.Body = body
 		resp.IsBase64Encoded = isBase64Encoded
 	}
@@ -72,6 +71,9 @@ func StringBody(body, contentType string, isBase64Encoded bool) ResponseOption {
 // Header returns a ResponseOption that sets the given header on the response.
 func Header(name, value string) ResponseOption {
 	return func(_ context.Context, resp *events.APIGatewayProxyResponse) {
+		if resp.Headers == nil {
+			resp.Headers = make(map[string]string)
+		}
 		resp.Headers[name] = value
 	}
 }
