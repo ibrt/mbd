@@ -4,7 +4,6 @@ package main
 
 import (
 	"context"
-	"reflect"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/ibrt/errors"
@@ -21,7 +20,7 @@ type Response struct {
 }
 
 func main() {
-	mbd.NewFunction(reflect.TypeOf(Request{}), handler).
+	mbd.NewFunction(Request{}, handler).
 		SetDebug(true).
 		AddProviders(mbd.StaticProvider("key", "value")).
 		AddCheckers(checker).

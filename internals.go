@@ -12,13 +12,7 @@ import (
 	"github.com/ibrt/errors"
 )
 
-var (
-	invalidBody        = errors.Behaviors(errors.HTTPStatusBadRequest, errors.PublicMessage("invalid-body"))
-	invalidContentType = errors.Behaviors(errors.HTTPStatusBadRequest, errors.PublicMessage("invalid-content-type"))
-	unexpectedBody     = errors.Behaviors(errors.HTTPStatusBadRequest, errors.PublicMessage("unexpected-body"))
-)
-
-type noRequestBody struct {
+type noRequestBodyType struct {
 	// intentionally empty
 }
 
@@ -31,6 +25,13 @@ type errorResponse struct {
 	Error      string   `json:"error,omitempty"`
 	StackTrace []string `json:"stackTrace,omitempty"`
 }
+
+var (
+	invalidBody        = errors.Behaviors(errors.HTTPStatusBadRequest, errors.PublicMessage("invalid-body"))
+	invalidContentType = errors.Behaviors(errors.HTTPStatusBadRequest, errors.PublicMessage("invalid-content-type"))
+	unexpectedBody     = errors.Behaviors(errors.HTTPStatusBadRequest, errors.PublicMessage("unexpected-body"))
+	noRequestBody      = reflect.TypeOf(noRequestBodyType{})
+)
 
 func adaptError(ctx context.Context, err error) *events.APIGatewayProxyResponse {
 	statusCode := errors.GetHTTPStatusOrDefault(err, http.StatusInternalServerError)
@@ -64,7 +65,7 @@ func parseRequest(_ context.Context, reqType reflect.Type, in *events.APIGateway
 		return nil, errors.Errorf("invalid IsBase64Encoded: expected 'false', got 'true'", invalidBody)
 	}
 
-	if reqType == NoRequestBody {
+	if reqType == noRequestBody {
 		if in.Body != "" {
 			return nil, errors.Errorf("unexpected Body", unexpectedBody)
 		}

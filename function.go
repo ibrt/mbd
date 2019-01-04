@@ -16,9 +16,6 @@ type Checker func(context.Context, *events.APIGatewayProxyRequest, interface{}) 
 // Handler implements a Lambda function handler.
 type Handler func(context.Context, interface{}) (interface{}, error)
 
-// NoRequestBody can be passed to NewFunction to indicate that the request has no body.
-var NoRequestBody = reflect.TypeOf(noRequestBody{})
-
 // Function sets up a Lambda function handler.
 type Function struct {
 	reqType   reflect.Type
@@ -29,9 +26,14 @@ type Function struct {
 }
 
 // NewFunction initializes a new Function.
-func NewFunction(reqType reflect.Type, handler Handler) *Function {
-	errors.Assert(reqType.Kind() == reflect.Struct, "reqType kind must be struct")
+func NewFunction(reqTemplate interface{}, handler Handler) *Function {
+	reqType := noRequestBody
+	if reqType != nil {
+		reqType = reflect.TypeOf(reqTemplate)
+	}
+
 	errors.Assert(handler != nil, "handler must not be nil")
+	errors.Assert(reqType.Kind() == reflect.Struct, "reqTemplate must be nil or struct value")
 
 	return &Function{
 		reqType:   reqType,
@@ -43,8 +45,8 @@ func NewFunction(reqType reflect.Type, handler Handler) *Function {
 }
 
 // SetDebug enables or disables additional debug information. Default is disabled.
-func (e *Function) SetDebug(debug bool) *Function {
-	e.debug = Debug(debug)
+func (e *Function) SetDebug(debug Debug) *Function {
+	e.debug = debug
 	return e
 }
 
