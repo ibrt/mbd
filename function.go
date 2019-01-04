@@ -11,10 +11,10 @@ import (
 )
 
 // Checker implements a check on a request, usually for authentication or validation.
-type Checker func(context.Context, *events.APIGatewayProxyRequest, interface{}) error
+type Checker func(ctx context.Context, in *events.APIGatewayProxyRequest, req interface{}) error
 
 // Handler implements a Lambda function handler.
-type Handler func(context.Context, interface{}) (interface{}, error)
+type Handler func(ctx context.Context, req interface{}) (resp interface{}, err error)
 
 // Function sets up a Lambda function handler.
 type Function struct {

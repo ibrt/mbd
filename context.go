@@ -16,11 +16,11 @@ const (
 	queryStringContextKey
 	pathParametersContextKey
 	stageVariablesContextKey
-	requestContextContexKey
+	requestContextContextKey
 )
 
 // Provider is a function that populates the Context with some values.
-type Provider func(context.Context) context.Context
+type Provider func(ctx context.Context) context.Context
 
 // StaticProvider returns a Provider that adds the given k/v pair to the context.
 func StaticProvider(k, v interface{}) Provider {
@@ -105,7 +105,7 @@ type RequestContext = events.APIGatewayProxyRequestContext
 
 // GetRequestContext returns the RequestContext stored in context.
 func GetRequestContext(ctx context.Context) *RequestContext {
-	return ctx.Value(requestContextContexKey).(*RequestContext)
+	return ctx.Value(requestContextContextKey).(*RequestContext)
 }
 
 type singleGet struct {
@@ -190,7 +190,7 @@ func populateContext(ctx context.Context, debug Debug, in *events.APIGatewayProx
 	ctx = context.WithValue(ctx, queryStringContextKey, &QueryString{newMultiGet(in.QueryStringParameters, in.MultiValueQueryStringParameters)})
 	ctx = context.WithValue(ctx, pathParametersContextKey, &PathParameters{newSingleGet(in.PathParameters)})
 	ctx = context.WithValue(ctx, stageVariablesContextKey, &StageVariables{newSingleGet(in.StageVariables)})
-	ctx = context.WithValue(ctx, requestContextContexKey, &in.RequestContext)
+	ctx = context.WithValue(ctx, requestContextContextKey, &in.RequestContext)
 
 	return ctx
 }
