@@ -1,0 +1,24 @@
+service: mbd
+
+provider:
+  stage: test
+  name: aws
+  runtime: go1.x
+  memorySize: 1024
+  timeout: 30
+  logRetentionInDays: 7
+  endpointType: regional
+
+functions:
+  e2e:
+    handler: build/e2e
+    events:
+      - http:
+          path: e2e
+          method: post
+
+package:
+  exclude:
+    - ./**
+  include:
+    - ./build/**
