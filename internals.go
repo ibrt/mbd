@@ -13,12 +13,14 @@ import (
 )
 
 var (
-	badEncoding              = errors.Behaviors(errors.HTTPStatusBadRequest, errors.PublicMessage("bad-encoding"))
-	badJSON                  = errors.Behaviors(errors.HTTPStatusBadRequest, errors.PublicMessage("bad-json"))
-	badContentType           = errors.Behaviors(errors.HTTPStatusBadRequest, errors.PublicMessage("bad-content-type"))
-	badPathParameters        = errors.Behaviors(errors.HTTPStatusBadRequest, errors.PublicMessage("bad-path-parameters"))
-	badQueryStringParameters = errors.Behaviors(errors.HTTPStatusBadRequest, errors.PublicMessage("bad-query-string-parameters"))
+	invalidBody        = errors.Behaviors(errors.HTTPStatusBadRequest, errors.PublicMessage("invalid-body"))
+	invalidContentType = errors.Behaviors(errors.HTTPStatusBadRequest, errors.PublicMessage("invalid-content-type"))
+	unexpectedBody     = errors.Behaviors(errors.HTTPStatusBadRequest, errors.PublicMessage("unexpected-body"))
 )
+
+type noRequestBody struct {
+	// intentionally empty
+}
 
 type errorResponse struct {
 	StatusCode    int    `json:"statusCode"`
@@ -59,7 +61,15 @@ func getDefaultPublicMessage(statusCode int) string {
 
 func parseRequest(_ context.Context, reqType reflect.Type, in *events.APIGatewayProxyRequest) (interface{}, error) {
 	if in.IsBase64Encoded {
-		return nil, errors.Errorf("bad IsBase64Encoded: expected 'false', got 'true'", badEncoding)
+		return nil, errors.Errorf("invalid IsBase64Encoded: expected 'false', got 'true'", invalidBody)
+	}
+
+	if reqType == NoRequestBody {
+		if in.Body != "" {
+			return nil, errors.Errorf("unexpected Body", unexpectedBody)
+		}
+
+		return nil, nil
 	}
 
 	req := reflect.New(reqType).Interface()
@@ -69,7 +79,7 @@ func parseRequest(_ context.Context, reqType reflect.Type, in *events.APIGateway
 	dec.UseNumber()
 
 	if err := dec.Decode(req); err != nil {
-		return nil, errors.Wrap(err, errors.Prefix("bad Body"), badJSON)
+		return nil, errors.Wrap(err, errors.Prefix("invalid Body"), invalidBody)
 	}
 
 	return req, nil
@@ -90,6 +100,7 @@ func adaptResponse(_ context.Context, statusCode int, resp interface{}) *events.
 		buf, err := json.MarshalIndent(resp, "", "  ")
 		errors.MaybeMustWrap(err)
 		out.Body = string(buf)
+		out.IsBase64Encoded = false
 	}
 
 	return out
@@ -103,16 +114,16 @@ func checkContentType(_ context.Context, in *events.APIGatewayProxyRequest, _ in
 
 	mediaType, params, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		return errors.Wrap(err, badContentType)
+		return errors.Wrap(err, invalidContentType)
 	}
 
-	if mediaType != "application/json" {
-		return errors.Errorf("bad Content-Type: expected mime type 'application/json', got '%v'", contentType, badContentType)
+	if strings.ToLower(mediaType) != "application/json" {
+		return errors.Errorf("bad Content-Type: expected mime type 'application/json', got '%v'", contentType, invalidContentType)
 
 	}
 
-	if charset, ok := params["charset"]; ok && charset != "utf-8" {
-		return errors.Errorf("bad Content-Type: expected charset 'utf-8', got '%v'", charset, badContentType)
+	if charset, ok := params["charset"]; ok && strings.ToLower(charset) != "utf-8" {
+		return errors.Errorf("bad Content-Type: expected charset 'utf-8', got '%v'", charset, invalidContentType)
 	}
 
 	return nil

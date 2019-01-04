@@ -16,6 +16,9 @@ type Checker func(context.Context, *events.APIGatewayProxyRequest, interface{}) 
 // Handler implements a Lambda function handler.
 type Handler func(context.Context, interface{}) (interface{}, error)
 
+// NoRequestBody can be passed to NewFunction to indicate that the request has no body.
+var NoRequestBody = reflect.TypeOf(noRequestBody{})
+
 // Function sets up a Lambda function handler.
 type Function struct {
 	reqType   reflect.Type
