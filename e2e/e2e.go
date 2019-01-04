@@ -21,34 +21,31 @@ type Response struct {
 }
 
 func main() {
-	m := mbd.Middlewares(
-		mbd.ContextMiddleware(mbd.StaticContextProvider("key", "value")),
-		mbd.DebugMiddleware(true),
-		mbd.RequestIDMiddleware(),
-		mbd.PanicMiddleware(mbd.DefaultErrorAdapter),
-		mbd.BodyMiddleware(mbd.JSONBodyAdapter(reflect.TypeOf(Request{}), mbd.JSONDecoderDisallowUnknownFields())),
-		mbd.ValidatorMiddleware(validator))
-
-	mbd.Start(m(handler))
+	mbd.NewFunction(reflect.TypeOf(Request{}), handler).
+		SetDebug(true).
+		AddProviders(mbd.StaticProvider("key", "value")).
+		AddCheckers(checker).
+		Start()
 }
 
-func validator(ctx context.Context, _ events.APIGatewayProxyRequest) {
-	if req := mbd.GetBody(ctx).(*Request); req.Behavior != "ok" && req.Behavior != "error" && req.Behavior != "panic" {
-		panic(errors.Errorf("missing or unknown behavior '%v'", req.Behavior, errors.HTTPStatusBadRequest))
+func checker(_ context.Context, _ *events.APIGatewayProxyRequest, req interface{}) error {
+	if req := req.(*Request); req.Behavior != "ok" && req.Behavior != "error" && req.Behavior != "panic" {
+		return errors.Errorf("missing or unknown behavior '%v'", req.Behavior, errors.HTTPStatusBadRequest)
 	}
+	return nil
 }
 
-func handler(ctx context.Context, in events.APIGatewayProxyRequest) events.APIGatewayProxyResponse {
+func handler(ctx context.Context, req interface{}) (interface{}, error) {
 	errors.Assert(ctx.Value("key").(string) == "value", "missing context key")
-	req := mbd.GetBody(ctx).(*Request)
+	request := req.(*Request)
 
-	switch req.Behavior {
+	switch request.Behavior {
 	case "ok":
-		return mbd.NewResponse(ctx, mbd.JSONBody(&Response{Value: req.Value}))
+		return &Response{Value: request.Value}, nil
 	case "error":
-		return mbd.DefaultErrorAdapter(ctx, in, errors.Errorf("test error", errors.HTTPStatus(req.Value)))
+		return nil, errors.Errorf("test error", errors.HTTPStatus(request.Value))
 	case "panic":
-		panic(errors.Errorf("test error", errors.HTTPStatus(req.Value)))
+		panic(errors.Errorf("test error", errors.HTTPStatus(request.Value)))
 	default:
 		panic("unexpected")
 	}

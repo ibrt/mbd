@@ -30,13 +30,13 @@ type errorResponse struct {
 	StackTrace []string `json:"stackTrace,omitempty"`
 }
 
-func adaptError(ctx context.Context, err error) events.APIGatewayProxyResponse {
+func adaptError(ctx context.Context, err error) *events.APIGatewayProxyResponse {
 	statusCode := errors.GetHTTPStatusOrDefault(err, http.StatusInternalServerError)
 
 	resp := &errorResponse{
 		StatusCode:    statusCode,
 		PublicMessage: errors.GetPublicMessageOrDefault(err, getDefaultPublicMessage(statusCode)),
-		RequestID:     GetRequestID(ctx),
+		RequestID:     GetRequestContext(ctx).RequestID,
 	}
 
 	if GetDebug(ctx) {
@@ -57,7 +57,7 @@ func getDefaultPublicMessage(statusCode int) string {
 	return "unknown"
 }
 
-func parseRequest(_ context.Context, reqType reflect.Type, in events.APIGatewayProxyRequest) (interface{}, error) {
+func parseRequest(_ context.Context, reqType reflect.Type, in *events.APIGatewayProxyRequest) (interface{}, error) {
 	if in.IsBase64Encoded {
 		return nil, errors.Errorf("bad IsBase64Encoded: expected 'false', got 'true'", badEncoding)
 	}
@@ -75,11 +75,8 @@ func parseRequest(_ context.Context, reqType reflect.Type, in events.APIGatewayP
 	return req, nil
 }
 
-func adaptResponse(_ context.Context, statusCode int, resp interface{}) events.APIGatewayProxyResponse {
-	buf, err := json.MarshalIndent(resp, "", "  ")
-	errors.MaybeMustWrap(err)
-
-	return events.APIGatewayProxyResponse{
+func adaptResponse(_ context.Context, statusCode int, resp interface{}) *events.APIGatewayProxyResponse {
+	out := &events.APIGatewayProxyResponse{
 		StatusCode: statusCode,
 		Headers: map[string]string{
 			"Content-Type":  "application/json; charset=utf-8",
@@ -87,12 +84,18 @@ func adaptResponse(_ context.Context, statusCode int, resp interface{}) events.A
 			"Pragma":        "no-cache",
 			"Expires":       "0",
 		},
-		Body:            string(buf),
-		IsBase64Encoded: false,
 	}
+
+	if resp != nil {
+		buf, err := json.MarshalIndent(resp, "", "  ")
+		errors.MaybeMustWrap(err)
+		out.Body = string(buf)
+	}
+
+	return out
 }
 
-func checkContentType(_ context.Context, in events.APIGatewayProxyRequest, _ interface{}) error {
+func checkContentType(_ context.Context, in *events.APIGatewayProxyRequest, _ interface{}) error {
 	contentType := in.Headers["Content-Type"]
 	if contentType == "" {
 		return nil
@@ -112,18 +115,5 @@ func checkContentType(_ context.Context, in events.APIGatewayProxyRequest, _ int
 		return errors.Errorf("bad Content-Type: expected charset 'utf-8', got '%v'", charset, badContentType)
 	}
 
-	return nil
-}
-
-func checkParameters(_ context.Context, in events.APIGatewayProxyRequest, _ interface{}) error {
-	if len(in.PathParameters) > 0 {
-		return errors.Errorf("bad PathParameters: expected 'map[]', got '%v'", in.PathParameters, badPathParameters)
-	}
-	if len(in.QueryStringParameters) > 0 {
-		return errors.Errorf("bad QueryStringParameters: expected 'map[]', got '%v'", in.QueryStringParameters, badQueryStringParameters)
-	}
-	if len(in.MultiValueQueryStringParameters) > 0 {
-		return errors.Errorf("bad MultiValueQueryStringParameters: expected 'map[]', got '%v'", in.MultiValueQueryStringParameters, badQueryStringParameters)
-	}
 	return nil
 }
