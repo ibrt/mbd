@@ -3,8 +3,6 @@ package mbd
 import (
 	"context"
 
-	"github.com/ibrt/mbd/internal/getters"
-
 	"github.com/aws/aws-lambda-go/events"
 )
 
@@ -19,6 +17,17 @@ const (
 	stageVariablesContextKey
 	requestContextContextKey
 )
+
+func populateContext(ctx context.Context, debug Debug, in *events.APIGatewayProxyRequest) context.Context {
+	ctx = context.WithValue(ctx, debugContextKey, debug)
+	ctx = context.WithValue(ctx, pathContextKey, newPath(in))
+	ctx = context.WithValue(ctx, headersContextKey, &Headers{newMultiGet(in.Headers, in.MultiValueHeaders)})
+	ctx = context.WithValue(ctx, queryStringContextKey, &QueryString{newMultiGet(in.QueryStringParameters, in.MultiValueQueryStringParameters)})
+	ctx = context.WithValue(ctx, pathParametersContextKey, &PathParameters{newSingleGet(in.PathParameters)})
+	ctx = context.WithValue(ctx, stageVariablesContextKey, &StageVariables{newSingleGet(in.StageVariables)})
+	ctx = context.WithValue(ctx, requestContextContextKey, &in.RequestContext)
+	return ctx
+}
 
 // Provider is a function that populates the Context with some values.
 type Provider func(ctx context.Context) context.Context
@@ -70,7 +79,7 @@ func GetPath(ctx context.Context) *Path {
 
 // Headers provides access to request headers, as original map or case-insensitive getters.
 type Headers struct {
-	*getters.Multi
+	*multiGet
 }
 
 // GetHeaders returns the Headers stored in context.
@@ -80,7 +89,7 @@ func GetHeaders(ctx context.Context) *Headers {
 
 // QueryString provides access to query string parameters, as original map or case-insensitive getters.
 type QueryString struct {
-	*getters.Multi
+	*multiGet
 }
 
 // GetQueryString returns the QueryString stored in context.
@@ -90,7 +99,7 @@ func GetQueryString(ctx context.Context) *QueryString {
 
 // PathParameters provides access to path parameters, as original map or case-insensitive getter.
 type PathParameters struct {
-	*getters.Single
+	*singleGet
 }
 
 // GetPathParameters returns the PathParameters stored in context.
@@ -100,7 +109,7 @@ func GetPathParameters(ctx context.Context) *PathParameters {
 
 // StageVariables provides access to stage variables, as original map or case-insensitive getter.
 type StageVariables struct {
-	*getters.Single
+	*singleGet
 }
 
 // GetStageVariables returns the GetStageVariables stored in context.
@@ -114,16 +123,4 @@ type RequestContext = events.APIGatewayProxyRequestContext
 // GetRequestContext returns the RequestContext stored in context.
 func GetRequestContext(ctx context.Context) *RequestContext {
 	return ctx.Value(requestContextContextKey).(*RequestContext)
-}
-
-func populateContext(ctx context.Context, debug Debug, in *events.APIGatewayProxyRequest) context.Context {
-	ctx = context.WithValue(ctx, debugContextKey, debug)
-	ctx = context.WithValue(ctx, pathContextKey, newPath(in))
-	ctx = context.WithValue(ctx, headersContextKey, &Headers{getters.NewMulti(in.Headers, in.MultiValueHeaders)})
-	ctx = context.WithValue(ctx, queryStringContextKey, &QueryString{getters.NewMulti(in.QueryStringParameters, in.MultiValueQueryStringParameters)})
-	ctx = context.WithValue(ctx, pathParametersContextKey, &PathParameters{getters.NewSingle(in.PathParameters)})
-	ctx = context.WithValue(ctx, stageVariablesContextKey, &StageVariables{getters.NewSingle(in.StageVariables)})
-	ctx = context.WithValue(ctx, requestContextContextKey, &in.RequestContext)
-
-	return ctx
 }
