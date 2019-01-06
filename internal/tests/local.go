@@ -18,7 +18,7 @@ func RunLocalTests(t *testing.T) {
 			dumpValue("REQUEST", c.Request)
 
 			out, err := GetTestFunction(c.FunctionName).
-				AddProviders(mbd.StaticProvider(testingContextKey, t)).
+				AddProviders(mbd.SingletonProvider(testingContextKey, t)).
 				Handler(context.Background(), *in)
 
 			require.NoError(t, err)

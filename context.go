@@ -2,7 +2,8 @@ package mbd
 
 import (
 	"context"
-	"strings"
+
+	"github.com/ibrt/mbd/internal/getters"
 
 	"github.com/aws/aws-lambda-go/events"
 )
@@ -22,10 +23,17 @@ const (
 // Provider is a function that populates the Context with some values.
 type Provider func(ctx context.Context) context.Context
 
-// StaticProvider returns a Provider that adds the given k/v pair to the context.
-func StaticProvider(k, v interface{}) Provider {
+// SingletonProvider returns a Provider that adds the given k/v pair to the context.
+func SingletonProvider(k, v interface{}) Provider {
 	return func(ctx context.Context) context.Context { // Provider
 		return context.WithValue(ctx, k, v)
+	}
+}
+
+// RequestProvider returns a Provider that generates a new k/v pair for every requests, obtaining v from f.
+func RequestProvider(k, f func() interface{}) Provider {
+	return func(ctx context.Context) context.Context { // Provider
+		return context.WithValue(ctx, k, f())
 	}
 }
 
@@ -62,7 +70,7 @@ func GetPath(ctx context.Context) *Path {
 
 // Headers provides access to request headers, as original map or case-insensitive getters.
 type Headers struct {
-	*multiGet
+	*getters.Multi
 }
 
 // GetHeaders returns the Headers stored in context.
@@ -72,7 +80,7 @@ func GetHeaders(ctx context.Context) *Headers {
 
 // QueryString provides access to query string parameters, as original map or case-insensitive getters.
 type QueryString struct {
-	*multiGet
+	*getters.Multi
 }
 
 // GetQueryString returns the QueryString stored in context.
@@ -82,7 +90,7 @@ func GetQueryString(ctx context.Context) *QueryString {
 
 // PathParameters provides access to path parameters, as original map or case-insensitive getter.
 type PathParameters struct {
-	*singleGet
+	*getters.Single
 }
 
 // GetPathParameters returns the PathParameters stored in context.
@@ -92,7 +100,7 @@ func GetPathParameters(ctx context.Context) *PathParameters {
 
 // StageVariables provides access to stage variables, as original map or case-insensitive getter.
 type StageVariables struct {
-	*singleGet
+	*getters.Single
 }
 
 // GetStageVariables returns the GetStageVariables stored in context.
@@ -108,88 +116,13 @@ func GetRequestContext(ctx context.Context) *RequestContext {
 	return ctx.Value(requestContextContextKey).(*RequestContext)
 }
 
-type singleGet struct {
-	original  map[string]string
-	lowercase map[string]string
-}
-
-func newSingleGet(original map[string]string) *singleGet {
-	lowercase := make(map[string]string, len(original))
-	for k, v := range original {
-		lowercase[strings.ToLower(k)] = v
-	}
-	return &singleGet{
-		original:  original,
-		lowercase: lowercase,
-	}
-}
-
-// Map returns the original values as a map.
-func (s *singleGet) Map() map[string]string {
-	return s.original
-}
-
-// Get returns the value corresponding to the given key, with case-insensitive matching.
-// If the key is not present, it returns "".
-func (s *singleGet) Get(k string) string {
-	return s.lowercase[strings.ToLower(k)]
-}
-
-type multiGet struct {
-	original       map[string]string
-	originalMulti  map[string][]string
-	lowercaseMulti map[string][]string
-}
-
-func newMultiGet(original map[string]string, originalMulti map[string][]string) *multiGet {
-	lowercaseMulti := make(map[string][]string, len(originalMulti))
-	for k, v := range originalMulti {
-		lowercaseMulti[strings.ToLower(k)] = v
-	}
-	return &multiGet{
-		original:       original,
-		originalMulti:  originalMulti,
-		lowercaseMulti: lowercaseMulti,
-	}
-}
-
-// Map returns the original values as single-value map.
-func (m *multiGet) Map() map[string]string {
-	return m.original
-}
-
-// MapMulti returns the original values as a multi-value map.
-func (m *multiGet) MapMulti() map[string][]string {
-	return m.originalMulti
-}
-
-// Get returns a single value corresponding to the given key, with case-insensitive matching.
-// If the key is not present, it returns "". If the key has multiple values, it returns the last one.
-func (m *multiGet) Get(k string) string {
-	v := m.GetMulti(k)
-	if len(v) == 0 {
-		return ""
-	}
-	return v[len(v)-1]
-}
-
-// Get returns the values corresponding to the given key, with case-insensitive matching.
-// If the key is not present, it returns []string{}. If the key has multiple values, it returns all of them.
-func (m *multiGet) GetMulti(k string) []string {
-	v, ok := m.lowercaseMulti[strings.ToLower(k)]
-	if !ok {
-		return []string{}
-	}
-	return v
-}
-
 func populateContext(ctx context.Context, debug Debug, in *events.APIGatewayProxyRequest) context.Context {
 	ctx = context.WithValue(ctx, debugContextKey, debug)
 	ctx = context.WithValue(ctx, pathContextKey, newPath(in))
-	ctx = context.WithValue(ctx, headersContextKey, &Headers{newMultiGet(in.Headers, in.MultiValueHeaders)})
-	ctx = context.WithValue(ctx, queryStringContextKey, &QueryString{newMultiGet(in.QueryStringParameters, in.MultiValueQueryStringParameters)})
-	ctx = context.WithValue(ctx, pathParametersContextKey, &PathParameters{newSingleGet(in.PathParameters)})
-	ctx = context.WithValue(ctx, stageVariablesContextKey, &StageVariables{newSingleGet(in.StageVariables)})
+	ctx = context.WithValue(ctx, headersContextKey, &Headers{getters.NewMulti(in.Headers, in.MultiValueHeaders)})
+	ctx = context.WithValue(ctx, queryStringContextKey, &QueryString{getters.NewMulti(in.QueryStringParameters, in.MultiValueQueryStringParameters)})
+	ctx = context.WithValue(ctx, pathParametersContextKey, &PathParameters{getters.NewSingle(in.PathParameters)})
+	ctx = context.WithValue(ctx, stageVariablesContextKey, &StageVariables{getters.NewSingle(in.StageVariables)})
 	ctx = context.WithValue(ctx, requestContextContextKey, &in.RequestContext)
 
 	return ctx

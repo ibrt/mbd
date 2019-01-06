@@ -101,6 +101,6 @@ func GetTestFunction(functionName string) *mbd.Function {
 
 	return mbd.NewFunction(testFunction.ReqTemplate, testFunction.Handler).
 		SetDebug(true).
-		AddProviders(mbd.StaticProvider("key", "value")).
+		AddProviders(mbd.SingletonProvider("key", "value")).
 		AddCheckers(testFunction.Checkers...)
 }
