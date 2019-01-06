@@ -3,7 +3,6 @@ package mbd
 import (
 	"context"
 	"encoding/json"
-	"mime"
 	"net/http"
 	"reflect"
 	"strings"
@@ -16,14 +15,18 @@ type noRequestBodyType struct {
 	// intentionally empty
 }
 
-type errorResponse struct {
-	StatusCode    int    `json:"statusCode"`
-	PublicMessage string `json:"publicMessage"`
-	RequestID     string `json:"requestId"`
+// ErrorResponse describes an error response.
+type ErrorResponse struct {
+	StatusCode    int           `json:"statusCode"`
+	PublicMessage string        `json:"publicMessage"`
+	RequestID     string        `json:"requestId"`
+	Errors        []*ErrorDebug `json:"errors,omitempty"` // included only if debug context value is set to true
+}
 
-	// included only if debug context value is set to true
-	Error      string   `json:"error,omitempty"`
-	StackTrace []string `json:"stackTrace,omitempty"`
+// ErrorDebug is an entry in the Errors section of ErrorResponse.
+type ErrorDebug struct {
+	Error      string   `json:"error"`
+	StackTrace []string `json:"stackTrace"`
 }
 
 var (
@@ -36,15 +39,22 @@ var (
 func adaptError(ctx context.Context, err error) *events.APIGatewayProxyResponse {
 	statusCode := errors.GetHTTPStatusOrDefault(err, http.StatusInternalServerError)
 
-	resp := &errorResponse{
+	resp := &ErrorResponse{
 		StatusCode:    statusCode,
 		PublicMessage: errors.GetPublicMessageOrDefault(err, getDefaultPublicMessage(statusCode)),
 		RequestID:     GetRequestContext(ctx).RequestID,
 	}
 
 	if GetDebug(ctx) {
-		resp.Error = err.Error()
-		resp.StackTrace = errors.FormatCallers(errors.GetCallersOrCurrent(err))
+		errs := errors.Split(err)
+		resp.Errors = make([]*ErrorDebug, len(errs))
+
+		for i, err := range errs {
+			resp.Errors[i] = &ErrorDebug{
+				Error:      err.Error(),
+				StackTrace: errors.FormatCallers(errors.GetCallersOrCurrent(err)),
+			}
+		}
 	}
 
 	return adaptResponse(ctx, statusCode, resp)
@@ -105,27 +115,4 @@ func adaptResponse(_ context.Context, statusCode int, resp interface{}) *events.
 	}
 
 	return out
-}
-
-func checkContentType(_ context.Context, in *events.APIGatewayProxyRequest, _ interface{}) error {
-	contentType := in.Headers["Content-Type"]
-	if contentType == "" {
-		return nil
-	}
-
-	mediaType, params, err := mime.ParseMediaType(contentType)
-	if err != nil {
-		return errors.Wrap(err, invalidContentType)
-	}
-
-	if strings.ToLower(mediaType) != "application/json" {
-		return errors.Errorf("bad Content-Type: expected mime type 'application/json', got '%v'", contentType, invalidContentType)
-
-	}
-
-	if charset, ok := params["charset"]; ok && strings.ToLower(charset) != "utf-8" {
-		return errors.Errorf("bad Content-Type: expected charset 'utf-8', got '%v'", charset, invalidContentType)
-	}
-
-	return nil
 }

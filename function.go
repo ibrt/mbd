@@ -40,7 +40,6 @@ func NewFunction(reqTemplate interface{}, handler Handler) *Function {
 		handler:   handler,
 		debug:     false,
 		providers: make([]Provider, 0),
-		checkers:  []Checker{checkContentType},
 	}
 }
 
