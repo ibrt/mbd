@@ -101,10 +101,10 @@ func (r *remoteRunner) Teardown(t *testing.T) {
 	r.printHeader("Teardown")
 
 	if r.baseURL != "" {
-		//r.runCommand(t, exec.Command("sls", "remove"), nil)
+		r.runCommand(t, exec.Command("sls", "remove"), nil)
 	}
 	if r.dir != "" {
-		//require.NoError(t, os.RemoveAll(r.dir))
+		require.NoError(t, os.RemoveAll(r.dir))
 	}
 }
 
