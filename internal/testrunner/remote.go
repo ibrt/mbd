@@ -165,7 +165,7 @@ func (r *remoteRunner) deploy(t *testing.T) {
 
 func (r *remoteRunner) getStage() string {
 	if os.Getenv("CI") != "" {
-		return "ci-" + os.Getenv("TRAVIS_BRANCH")
+		return "ci-" + os.Getenv("TRAVIS_BRANCH") + "-" + os.Getenv("TRAVIS_JOB_NUMBER")
 	}
 	return "cli"
 }

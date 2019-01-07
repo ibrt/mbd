@@ -9,6 +9,7 @@ matrix:
       install: true
 
 script:
+  - npm install -g serverless
   - go test -v -race -coverprofile=coverage.txt -covermode=atomic -tags=remote
 
 after_success:
