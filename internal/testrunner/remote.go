@@ -15,6 +15,7 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
+	"strings"
 	"sync"
 	"testing"
 	"text/template"
@@ -165,7 +166,9 @@ func (r *remoteRunner) deploy(t *testing.T) {
 
 func (r *remoteRunner) getStage() string {
 	if os.Getenv("CI") != "" {
-		return "ci-" + os.Getenv("TRAVIS_BRANCH") + "-" + os.Getenv("TRAVIS_JOB_NUMBER")
+		return fmt.Sprintf("ci-%v-%v",
+			os.Getenv("TRAVIS_BRANCH"),
+			strings.Replace(os.Getenv("TRAVIS_JOB_NUMBER"), ".", "-", -1))
 	}
 	return "cli"
 }
