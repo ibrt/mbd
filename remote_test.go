@@ -5,9 +5,9 @@ package mbd_test
 import (
 	"testing"
 
-	"github.com/ibrt/mbd/internal/tests"
+	"github.com/ibrt/mbd/internal/testrunner"
 )
 
 func TestRemote(t *testing.T) {
-	tests.RunRemoteTests(t)
+	testrunner.RunTests(t, testrunner.NewRemoteRunner())
 }

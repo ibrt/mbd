@@ -17,14 +17,14 @@ type noRequestBodyType struct {
 
 // ErrorResponse describes an error response.
 type ErrorResponse struct {
-	StatusCode    int           `json:"statusCode"`
-	PublicMessage string        `json:"publicMessage"`
-	RequestID     string        `json:"requestId"`
-	Errors        []*ErrorDebug `json:"errors,omitempty"` // included only if debug context value is set to true
+	StatusCode    int                   `json:"statusCode"`
+	PublicMessage string                `json:"publicMessage"`
+	RequestID     string                `json:"requestId"`
+	Errors        []*ErrorResponseError `json:"errors,omitempty"` // included only if debug context value is set to true
 }
 
-// ErrorDebug is an entry in the Errors section of ErrorResponse.
-type ErrorDebug struct {
+// ErrorResponseError is an entry in the Errors section of ErrorResponse.
+type ErrorResponseError struct {
 	Error      string   `json:"error"`
 	StackTrace []string `json:"stackTrace"`
 }
@@ -47,10 +47,10 @@ func adaptError(ctx context.Context, err error) *events.APIGatewayProxyResponse 
 
 	if GetDebug(ctx) {
 		errs := errors.Split(err)
-		resp.Errors = make([]*ErrorDebug, len(errs))
+		resp.Errors = make([]*ErrorResponseError, len(errs))
 
 		for i, err := range errs {
-			resp.Errors[i] = &ErrorDebug{
+			resp.Errors[i] = &ErrorResponseError{
 				Error:      err.Error(),
 				StackTrace: errors.FormatCallers(errors.GetCallersOrCurrent(err)),
 			}

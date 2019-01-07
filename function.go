@@ -96,5 +96,5 @@ func (e *Function) Handler(ctx context.Context, in events.APIGatewayProxyRequest
 
 // Start invokes lambda.Start() passing the Function handler as argument.
 func (e *Function) Start() {
-	lambda.Start(e.handler)
+	lambda.Start(e.Handler)
 }

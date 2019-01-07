@@ -3,9 +3,9 @@ package mbd_test
 import (
 	"testing"
 
-	"github.com/ibrt/mbd/internal/tests"
+	"github.com/ibrt/mbd/internal/testrunner"
 )
 
 func TestLocal(t *testing.T) {
-	tests.RunLocalTests(t)
+	testrunner.RunTests(t, testrunner.NewLocalRunner())
 }
