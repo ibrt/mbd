@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/aws/aws-lambda-go/events"
+
 	"github.com/ibrt/errors"
 	"github.com/ibrt/mbd"
 	"github.com/ibrt/mbd/internal/testcontext"
@@ -224,6 +226,33 @@ var testCases = []*TestCase{
 			require.Equal(t, "internal-server-error", errorResponse.PublicMessage)
 			require.Len(t, errorResponse.Errors, 1)
 			require.Equal(t, "test error", errorResponse.Errors[0].Error)
+			require.NotEmpty(t, errorResponse.Errors[0].StackTrace)
+		},
+	},
+	{
+		Name:         "Checker",
+		ReqTemplate:  TestRequest{},
+		RespTemplate: mbd.ErrorResponse{},
+		Request: &TestRequest{
+			Value: "testValue",
+		},
+		Handler: func(ctx context.Context, req interface{}) (interface{}, error) {
+			return nil, nil
+		},
+		Providers: nil,
+		Checkers: []mbd.Checker{
+			func(ctx context.Context, in *events.APIGatewayProxyRequest, req interface{}) error {
+				return errors.Errorf("check failed", errors.HTTPStatusBadRequest)
+			},
+		},
+		Assertion: func(t require.TestingT, statusCode int, headers map[string][]string, resp interface{}) {
+			errorResponse := resp.(*mbd.ErrorResponse)
+
+			require.Equal(t, http.StatusBadRequest, statusCode)
+			require.Equal(t, http.StatusBadRequest, errorResponse.StatusCode)
+			require.Equal(t, "bad-request", errorResponse.PublicMessage)
+			require.Len(t, errorResponse.Errors, 1)
+			require.Equal(t, "check failed", errorResponse.Errors[0].Error)
 			require.NotEmpty(t, errorResponse.Errors[0].StackTrace)
 		},
 	},
