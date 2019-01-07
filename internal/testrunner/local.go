@@ -50,6 +50,12 @@ func (r *localRunner) makeInput(t *testing.T, name string, req interface{}) *eve
 		Resource:   "/" + name,
 		Path:       "/" + name,
 		HTTPMethod: "POST",
+		Headers: map[string]string{
+			"Content-Type": "application/json; charset=utf-8",
+		},
+		MultiValueHeaders: map[string][]string{
+			"Content-Type": {"application/json; charset=utf-8"},
+		},
 		RequestContext: events.APIGatewayProxyRequestContext{
 			RequestID: "test-" + name,
 		},
