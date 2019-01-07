@@ -24,6 +24,7 @@ type TestResponse struct {
 // TestCase describes a test case.
 type TestCase struct {
 	Name         string
+	DisableDebug bool
 	ReqTemplate  interface{}
 	RespTemplate interface{}
 	Request      interface{}
@@ -76,8 +77,6 @@ var testCases = []*TestCase{
 				Value: req.(*TestRequest).Value,
 			}, nil
 		},
-		Providers: nil,
-		Checkers:  nil,
 		Assertion: func(t require.TestingT, statusCode int, headers map[string][]string, resp interface{}) {
 			response := resp.(*TestResponse)
 
@@ -89,12 +88,9 @@ var testCases = []*TestCase{
 		Name:         "MissingBody",
 		ReqTemplate:  TestRequest{},
 		RespTemplate: mbd.ErrorResponse{},
-		Request:      nil,
 		Handler: func(ctx context.Context, req interface{}) (interface{}, error) {
 			return nil, nil
 		},
-		Providers: nil,
-		Checkers:  nil,
 		Assertion: func(t require.TestingT, statusCode int, headers map[string][]string, resp interface{}) {
 			errorResponse := resp.(*mbd.ErrorResponse)
 
@@ -107,18 +103,13 @@ var testCases = []*TestCase{
 		},
 	},
 	{
-		Name:         "EmptyRequestAndResponse",
-		ReqTemplate:  nil,
-		RespTemplate: nil,
-		Request:      nil,
+		Name: "EmptyRequestAndResponse",
 		Handler: func(ctx context.Context, req interface{}) (interface{}, error) {
 			t := testcontext.GetTestingT(ctx)
 
 			require.Nil(t, req)
 			return nil, nil
 		},
-		Providers: nil,
-		Checkers:  nil,
 		Assertion: func(t require.TestingT, statusCode int, headers map[string][]string, resp interface{}) {
 			require.Equal(t, http.StatusOK, statusCode)
 			require.Nil(t, resp)
@@ -136,8 +127,6 @@ var testCases = []*TestCase{
 				errors.HTTPStatusConflict,
 				errors.PublicMessage("test-error"))
 		},
-		Providers: nil,
-		Checkers:  nil,
 		Assertion: func(t require.TestingT, statusCode int, headers map[string][]string, resp interface{}) {
 			errorResponse := resp.(*mbd.ErrorResponse)
 
@@ -159,8 +148,6 @@ var testCases = []*TestCase{
 		Handler: func(ctx context.Context, req interface{}) (interface{}, error) {
 			return nil, fmt.Errorf("test error")
 		},
-		Providers: nil,
-		Checkers:  nil,
 		Assertion: func(t require.TestingT, statusCode int, headers map[string][]string, resp interface{}) {
 			errorResponse := resp.(*mbd.ErrorResponse)
 
@@ -170,6 +157,26 @@ var testCases = []*TestCase{
 			require.Len(t, errorResponse.Errors, 1)
 			require.Equal(t, "test error", errorResponse.Errors[0].Error)
 			require.NotEmpty(t, errorResponse.Errors[0].StackTrace)
+		},
+	},
+	{
+		Name:         "NoDebugError",
+		DisableDebug: true,
+		ReqTemplate:  TestRequest{},
+		RespTemplate: mbd.ErrorResponse{},
+		Request: &TestRequest{
+			Value: "testValue",
+		},
+		Handler: func(ctx context.Context, req interface{}) (interface{}, error) {
+			return nil, fmt.Errorf("test error")
+		},
+		Assertion: func(t require.TestingT, statusCode int, headers map[string][]string, resp interface{}) {
+			errorResponse := resp.(*mbd.ErrorResponse)
+
+			require.Equal(t, http.StatusInternalServerError, statusCode)
+			require.Equal(t, http.StatusInternalServerError, errorResponse.StatusCode)
+			require.Equal(t, "internal-server-error", errorResponse.PublicMessage)
+			require.Empty(t, errorResponse.Errors)
 		},
 	},
 	{
@@ -198,7 +205,7 @@ var testCases = []*TestCase{
 		},
 	},
 	{
-		Name:         "PanicDefault",
+		Name:         "DefaultPanic",
 		ReqTemplate:  TestRequest{},
 		RespTemplate: mbd.ErrorResponse{},
 		Request: &TestRequest{

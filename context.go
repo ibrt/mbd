@@ -40,7 +40,7 @@ func SingletonProvider(k, v interface{}) Provider {
 }
 
 // RequestProvider returns a Provider that generates a new k/v pair for every requests, obtaining v from f.
-func RequestProvider(k, f func() interface{}) Provider {
+func RequestProvider(k interface{}, f func() interface{}) Provider {
 	return func(ctx context.Context) context.Context { // Provider
 		return context.WithValue(ctx, k, f())
 	}

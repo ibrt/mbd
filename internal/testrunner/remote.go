@@ -68,7 +68,7 @@ func main() {
 	testCase := testcases.GetTestCase("{{.Name}}")
 
 	mbd.NewFunction(testCase.ReqTemplate, testCase.Handler).
-		SetDebug(true).
+		SetDebug({{if .DisableDebug }}false{{else}}true{{end}}).
 		AddProviders(testrunner.RemoteTestingTProvider).
 		AddProviders(testCase.Providers...).
 		AddCheckers(testCase.Checkers...).
@@ -101,7 +101,7 @@ func (r *remoteRunner) Teardown(t *testing.T) {
 		//r.runCommand(t, exec.Command("sls", "remove"), nil)
 	}
 	if r.dir != "" {
-		require.NoError(t, os.RemoveAll(r.dir))
+		//require.NoError(t, os.RemoveAll(r.dir))
 	}
 }
 

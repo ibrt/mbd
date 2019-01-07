@@ -25,7 +25,7 @@ func NewLocalRunner() Runner {
 // RunTest implements Runner.
 func (r *localRunner) RunTest(t *testing.T, c *testcases.TestCase) {
 	out, err := mbd.NewFunction(c.ReqTemplate, c.Handler).
-		SetDebug(true).
+		SetDebug(!c.DisableDebug).
 		AddProviders(func(ctx context.Context) context.Context {
 			return testcontext.WithTestingT(ctx, t)
 		}).
