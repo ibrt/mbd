@@ -2,8 +2,10 @@ package testcases
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
+	"github.com/ibrt/errors"
 	"github.com/ibrt/mbd"
 	"github.com/ibrt/mbd/internal/testcontext"
 	"github.com/stretchr/testify/require"
@@ -120,6 +122,102 @@ var testCases = []*TestCase{
 		Assertion: func(t require.TestingT, statusCode int, headers map[string][]string, resp interface{}) {
 			require.Equal(t, http.StatusOK, statusCode)
 			require.Nil(t, resp)
+		},
+	},
+	{
+		Name:         "Error",
+		ReqTemplate:  TestRequest{},
+		RespTemplate: mbd.ErrorResponse{},
+		Request: &TestRequest{
+			Value: "testValue",
+		},
+		Handler: func(ctx context.Context, req interface{}) (interface{}, error) {
+			return nil, errors.Errorf("test error",
+				errors.HTTPStatusConflict,
+				errors.PublicMessage("test-error"))
+		},
+		Providers: nil,
+		Checkers:  nil,
+		Assertion: func(t require.TestingT, statusCode int, headers map[string][]string, resp interface{}) {
+			errorResponse := resp.(*mbd.ErrorResponse)
+
+			require.Equal(t, http.StatusConflict, statusCode)
+			require.Equal(t, http.StatusConflict, errorResponse.StatusCode)
+			require.Equal(t, "test-error", errorResponse.PublicMessage)
+			require.Len(t, errorResponse.Errors, 1)
+			require.Equal(t, "test error", errorResponse.Errors[0].Error)
+			require.NotEmpty(t, errorResponse.Errors[0].StackTrace)
+		},
+	},
+	{
+		Name:         "DefaultError",
+		ReqTemplate:  TestRequest{},
+		RespTemplate: mbd.ErrorResponse{},
+		Request: &TestRequest{
+			Value: "testValue",
+		},
+		Handler: func(ctx context.Context, req interface{}) (interface{}, error) {
+			return nil, fmt.Errorf("test error")
+		},
+		Providers: nil,
+		Checkers:  nil,
+		Assertion: func(t require.TestingT, statusCode int, headers map[string][]string, resp interface{}) {
+			errorResponse := resp.(*mbd.ErrorResponse)
+
+			require.Equal(t, http.StatusInternalServerError, statusCode)
+			require.Equal(t, http.StatusInternalServerError, errorResponse.StatusCode)
+			require.Equal(t, "internal-server-error", errorResponse.PublicMessage)
+			require.Len(t, errorResponse.Errors, 1)
+			require.Equal(t, "test error", errorResponse.Errors[0].Error)
+			require.NotEmpty(t, errorResponse.Errors[0].StackTrace)
+		},
+	},
+	{
+		Name:         "Panic",
+		ReqTemplate:  TestRequest{},
+		RespTemplate: mbd.ErrorResponse{},
+		Request: &TestRequest{
+			Value: "testValue",
+		},
+		Handler: func(ctx context.Context, req interface{}) (interface{}, error) {
+			panic(errors.Errorf("test error",
+				errors.HTTPStatusConflict,
+				errors.PublicMessage("test-error")))
+		},
+		Providers: nil,
+		Checkers:  nil,
+		Assertion: func(t require.TestingT, statusCode int, headers map[string][]string, resp interface{}) {
+			errorResponse := resp.(*mbd.ErrorResponse)
+
+			require.Equal(t, http.StatusConflict, statusCode)
+			require.Equal(t, http.StatusConflict, errorResponse.StatusCode)
+			require.Equal(t, "test-error", errorResponse.PublicMessage)
+			require.Len(t, errorResponse.Errors, 1)
+			require.Equal(t, "test error", errorResponse.Errors[0].Error)
+			require.NotEmpty(t, errorResponse.Errors[0].StackTrace)
+		},
+	},
+	{
+		Name:         "PanicDefault",
+		ReqTemplate:  TestRequest{},
+		RespTemplate: mbd.ErrorResponse{},
+		Request: &TestRequest{
+			Value: "testValue",
+		},
+		Handler: func(ctx context.Context, req interface{}) (interface{}, error) {
+			panic("test error")
+		},
+		Providers: nil,
+		Checkers:  nil,
+		Assertion: func(t require.TestingT, statusCode int, headers map[string][]string, resp interface{}) {
+			errorResponse := resp.(*mbd.ErrorResponse)
+
+			require.Equal(t, http.StatusInternalServerError, statusCode)
+			require.Equal(t, http.StatusInternalServerError, errorResponse.StatusCode)
+			require.Equal(t, "internal-server-error", errorResponse.PublicMessage)
+			require.Len(t, errorResponse.Errors, 1)
+			require.Equal(t, "test error", errorResponse.Errors[0].Error)
+			require.NotEmpty(t, errorResponse.Errors[0].StackTrace)
 		},
 	},
 }
