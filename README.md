@@ -20,9 +20,7 @@ type echoResponse struct {
 } 
 
 func main() {
-  mbd.NewFunction(echoRequest{}, echoHandler).
-    SetDebug(true).
-    Start()
+  mbd.NewFunction(echoRequest{}, echoHandler).Start()
 }
 
 func(ctx context.Context, req interface{}) (interface{}, error) {
