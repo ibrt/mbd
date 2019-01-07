@@ -30,7 +30,6 @@ const serverlessTpl = `
 service: mbd
 
 provider:
-  stage: test
   name: aws
   runtime: go1.x
   memorySize: 1024
@@ -98,7 +97,7 @@ func (r *remoteRunner) Teardown(t *testing.T) {
 	r.printHeader("Teardown")
 
 	if r.baseURL != "" {
-		r.runCommand(t, exec.Command("sls", "remove"), nil)
+		r.runCommand(t, exec.Command("sls", "remove", "--stage", r.getStage()), nil)
 	}
 	if r.dir != "" {
 		require.NoError(t, os.RemoveAll(r.dir))
@@ -152,13 +151,22 @@ func (r *remoteRunner) generateArtifacts(t *testing.T) {
 
 func (r *remoteRunner) deploy(t *testing.T) {
 	fmt.Println("Checking environment variables...")
-	require.NotEmpty(t, os.Getenv("AWS_PROFILE"), "Must set AWS_PROFILE.")
-	require.NotEmpty(t, os.Getenv("AWS_DEFAULT_REGION"), "Must set AWS_DEFAULT_REGION.")
+
+	if os.Getenv("AWS_PROFILE") == "" && (os.Getenv("AWS_ACCESS_KEY_ID") == "" || os.Getenv("AWS_SECRET_ACCESS_KEY") == "") {
+		require.Fail(t, "Must set AWS_PROFILE or AWS_ACCESS_KEY_ID an AWS_SECRET_ACCESS_KEY.")
+	}
 
 	fmt.Println("Deploying test functions...")
-	slsOut := r.runCommand(t, exec.Command("sls", "deploy"), nil)
+	slsOut := r.runCommand(t, exec.Command("sls", "deploy", "--stage", r.getStage()), nil)
 	r.baseURL = regexp.MustCompile(`https://[^\.]+\.execute-api.[^\.]+\.amazonaws\.com/[^/]+/`).FindString(slsOut)
 	require.NotEmpty(t, r.baseURL)
+}
+
+func (r *remoteRunner) getStage() string {
+	if os.Getenv("CI") != "" {
+		return "ci-" + os.Getenv("TRAVIS_BRANCH")
+	}
+	return "cli"
 }
 
 func (r *remoteRunner) makeHTTPRequest(t *testing.T, name string, req interface{}) *http.Request {

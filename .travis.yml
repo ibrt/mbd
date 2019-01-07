@@ -9,7 +9,7 @@ matrix:
       install: true
 
 script:
-  - go test -race -coverprofile=coverage.txt -covermode=atomic
+  - go test -v -race -coverprofile=coverage.txt -covermode=atomic -tags=remote
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
