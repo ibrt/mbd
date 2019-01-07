@@ -27,6 +27,6 @@ func main() {
 
 func(ctx context.Context, req interface{}) (interface{}, error) {
   echoRequest := req.(*echoRequest)
-  return &echoResponse{Value: echoRequest.Value}  
+  return &echoResponse{Value: echoRequest.Value}, nil  
 }
 ```
