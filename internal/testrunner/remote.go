@@ -20,13 +20,10 @@ import (
 	"text/template"
 	"unicode"
 
-	"github.com/stretchr/testify/require"
-
-	"github.com/ibrt/mbd/internal/testcontext"
-
 	"github.com/ibrt/errors"
-
 	"github.com/ibrt/mbd/internal/testcases"
+	"github.com/ibrt/mbd/internal/testcontext"
+	"github.com/stretchr/testify/require"
 )
 
 const serverlessTpl = `
@@ -101,7 +98,7 @@ func (r *remoteRunner) Teardown(t *testing.T) {
 	r.printHeader("Teardown")
 
 	if r.baseURL != "" {
-		r.runCommand(t, exec.Command("sls", "remove"), nil)
+		//r.runCommand(t, exec.Command("sls", "remove"), nil)
 	}
 	if r.dir != "" {
 		require.NoError(t, os.RemoveAll(r.dir))
@@ -134,15 +131,15 @@ func (r *remoteRunner) setupDir(t *testing.T) {
 
 func (r *remoteRunner) generateArtifacts(t *testing.T) {
 	fmt.Println("Generating templates...")
-	r.writeTemplate(t, "serverless.yml", template.Must(template.New("").Parse(serverlessTpl)), testcases.TestCases)
+	r.writeTemplate(t, "serverless.yml", template.Must(template.New("").Parse(serverlessTpl)), testcases.GetTestCases())
 	mainTpl := template.Must(template.New("").Parse(mainTpl))
 
-	for _, c := range testcases.TestCases {
+	for _, c := range testcases.GetTestCases() {
 		require.NoError(t, os.MkdirAll(filepath.Join("functions", c.Name), 0777))
 		r.writeTemplate(t, filepath.Join("functions", c.Name, "main.go"), mainTpl, c)
 	}
 
-	for _, c := range testcases.TestCases {
+	for _, c := range testcases.GetTestCases() {
 		fmt.Printf("Compiling '%v'...\n", c.Name)
 
 		cmd := exec.Command("go", "build", "-ldflags=-s -w",
@@ -235,7 +232,9 @@ type remoteTestingT struct {
 
 // RemoteTestingTProvider provides a require.TestingT suitable to use in Lambda functions.
 func RemoteTestingTProvider(ctx context.Context) context.Context {
-	return testcontext.WithTestingT(ctx, &remoteTestingT{})
+	return testcontext.WithTestingT(ctx, &remoteTestingT{
+		mu: &sync.Mutex{},
+	})
 }
 
 // Errorf implements require.TestingT

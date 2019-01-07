@@ -46,7 +46,7 @@ func RunTests(t *testing.T, r Runner) {
 	r.Setup(t)
 	defer r.Teardown(t)
 
-	for _, c := range testcases.TestCases {
+	for _, c := range testcases.GetTestCases() {
 		t.Run(c.Name, func(t *testing.T) {
 			r.RunTest(t, c)
 		})

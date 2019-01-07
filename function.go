@@ -28,7 +28,7 @@ type Function struct {
 // NewFunction initializes a new Function.
 func NewFunction(reqTemplate interface{}, handler Handler) *Function {
 	reqType := noRequestBody
-	if reqType != nil {
+	if reqTemplate != nil {
 		reqType = reflect.TypeOf(reqTemplate)
 	}
 

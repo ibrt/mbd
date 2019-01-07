@@ -47,6 +47,9 @@ func (r *localRunner) makeInput(t *testing.T, name string, req interface{}) *eve
 	}
 
 	in := &events.APIGatewayProxyRequest{
+		Resource:   "/" + name,
+		Path:       "/" + name,
+		HTTPMethod: "POST",
 		RequestContext: events.APIGatewayProxyRequestContext{
 			RequestID: "test-" + name,
 		},
