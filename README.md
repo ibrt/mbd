@@ -1,2 +1,2 @@
-# mbd
+# mbd [![Build Status](https://travis-ci.org/ibrt/mbd.svg?branch=master)](https://travis-ci.org/ibrt/mbd) [![Go Report Card](https://goreportcard.com/badge/github.com/ibrt/mbd)](https://goreportcard.com/report/github.com/ibrt/mbd) [![Test Coverage](https://codecov.io/gh/ibrt/mbd/branch/master/graph/badge.svg)](https://codecov.io/gh/ibrt/mbd) [![Go Docs](https://godoc.org/github.com/ibrt/mbd?status.svg)](http://godoc.org/github.com/ibrt/mbd)
 Composable Go framework for AWS Lambda.
