@@ -155,6 +155,7 @@ func (r *remoteRunner) deploy(t *testing.T) {
 	if os.Getenv("AWS_PROFILE") == "" && (os.Getenv("AWS_ACCESS_KEY_ID") == "" || os.Getenv("AWS_SECRET_ACCESS_KEY") == "") {
 		require.Fail(t, "Must set AWS_PROFILE or AWS_ACCESS_KEY_ID an AWS_SECRET_ACCESS_KEY.")
 	}
+	require.NotEmpty(t, os.Getenv("AWS_DEFAULT_REGION"))
 
 	fmt.Println("Deploying test functions...")
 	slsOut := r.runCommand(t, exec.Command("sls", "deploy", "--stage", r.getStage()), nil)
