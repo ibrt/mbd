@@ -22,3 +22,7 @@ func TestRequestProvider(t *testing.T) {
 	ctx = provider(context.Background())
 	require.Equal(t, 2, ctx.Value("key"))
 }
+
+func TestGetDebug_Default(t *testing.T) {
+	require.False(t, GetDebug(context.Background()))
+}
