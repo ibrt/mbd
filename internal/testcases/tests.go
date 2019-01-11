@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
-
 	"github.com/ibrt/errors"
 	"github.com/ibrt/mbd"
 	"github.com/ibrt/mbd/internal/testcontext"
