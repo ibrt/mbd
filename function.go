@@ -11,7 +11,8 @@ import (
 )
 
 // Checker implements a check on a request, usually for authentication or validation.
-type Checker func(ctx context.Context, in *events.APIGatewayProxyRequest, req interface{}) error
+// It can optionally also add values to the context.
+type Checker func(ctx context.Context, in *events.APIGatewayProxyRequest, req interface{}) (context.Context, error)
 
 // Handler implements a Lambda function handler.
 type Handler func(ctx context.Context, req interface{}) (resp interface{}, err error)
@@ -81,8 +82,12 @@ func (e *Function) Handler(ctx context.Context, in events.APIGatewayProxyRequest
 	}
 
 	for _, checker := range e.checkers {
-		if err := checker(ctx, &in, req); err != nil {
+		newCtx, err := checker(ctx, &in, req)
+		if err != nil {
 			return *adaptError(ctx, err), nil
+		}
+		if newCtx != nil {
+			ctx = newCtx
 		}
 	}
 

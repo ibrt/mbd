@@ -241,8 +241,8 @@ var testCases = []*TestCase{
 		},
 		Providers: nil,
 		Checkers: []mbd.Checker{
-			func(ctx context.Context, in *events.APIGatewayProxyRequest, req interface{}) error {
-				return errors.Errorf("check failed", errors.HTTPStatusBadRequest)
+			func(ctx context.Context, in *events.APIGatewayProxyRequest, req interface{}) (context.Context, error) {
+				return nil, errors.Errorf("check failed", errors.HTTPStatusBadRequest)
 			},
 		},
 		Assertion: func(t require.TestingT, statusCode int, headers map[string][]string, resp interface{}) {
