@@ -46,6 +46,19 @@ func newMultiGet(original map[string]string, originalMulti map[string][]string) 
 	for k, v := range originalMulti {
 		lowercaseMulti[strings.ToLower(k)] = v
 	}
+
+	// fix for SAM local: it doesn't populate multimaps
+	if len(originalMulti) < len(original) {
+		originalMulti = map[string][]string{}
+		for k, v := range original {
+			if v == "" {
+				originalMulti[k] = []string{}
+			} else {
+				originalMulti[k] = []string{v}
+			}
+		}
+	}
+
 	return &multiGet{
 		original:       original,
 		originalMulti:  originalMulti,
