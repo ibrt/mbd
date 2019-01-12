@@ -42,11 +42,6 @@ type multiGet struct {
 
 // newMultiGet initializes a new multiGet.
 func newMultiGet(original map[string]string, originalMulti map[string][]string) *multiGet {
-	lowercaseMulti := make(map[string][]string, len(originalMulti))
-	for k, v := range originalMulti {
-		lowercaseMulti[strings.ToLower(k)] = v
-	}
-
 	// fix for SAM local: it doesn't populate multimaps
 	if len(originalMulti) < len(original) {
 		originalMulti = map[string][]string{}
@@ -57,6 +52,11 @@ func newMultiGet(original map[string]string, originalMulti map[string][]string) 
 				originalMulti[k] = []string{v}
 			}
 		}
+	}
+
+	lowercaseMulti := make(map[string][]string, len(originalMulti))
+	for k, v := range originalMulti {
+		lowercaseMulti[strings.ToLower(k)] = v
 	}
 
 	return &multiGet{
