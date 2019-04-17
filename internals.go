@@ -29,6 +29,13 @@ type ErrorResponseError struct {
 	StackTrace []string `json:"stackTrace"`
 }
 
+// SerializedResponse allows returning a non-JSON response body, passed through as it is.
+type SerializedResponse struct {
+	ContentType     string
+	IsBase64Encoded bool
+	Body            string
+}
+
 var (
 	invalidBody        = errors.Behaviors(errors.HTTPStatusBadRequest, errors.PublicMessage("invalid-body"))
 	invalidContentType = errors.Behaviors(errors.HTTPStatusBadRequest, errors.PublicMessage("invalid-content-type"))
@@ -107,12 +114,21 @@ func adaptResponse(_ context.Context, statusCode int, resp interface{}) *events.
 		},
 	}
 
-	if resp != nil {
-		buf, err := json.MarshalIndent(resp, "", "  ")
-		errors.MaybeMustWrap(err)
-		out.Body = string(buf)
-		out.IsBase64Encoded = false
+	if resp == nil {
+		return out
 	}
+
+	if serializedResp, ok := resp.(*SerializedResponse); ok {
+		out.Headers["Content-Type"] = serializedResp.ContentType
+		out.IsBase64Encoded = serializedResp.IsBase64Encoded
+		out.Body = serializedResp.Body
+		return out
+	}
+
+	buf, err := json.MarshalIndent(resp, "", "  ")
+	errors.MaybeMustWrap(err)
+	out.Body = string(buf)
+	out.IsBase64Encoded = false
 
 	return out
 }

@@ -255,4 +255,39 @@ var testCases = []*TestCase{
 			require.NotEmpty(t, errorResponse.Errors[0].StackTrace)
 		},
 	},
+	{
+		Name:         "SerializedResponse",
+		ReqTemplate:  TestRequest{},
+		RespTemplate: mbd.SerializedResponse{},
+		Request: &TestRequest{
+			Value: "testValue",
+		},
+		Handler: func(ctx context.Context, req interface{}) (interface{}, error) {
+			t := testcontext.GetTestingT(ctx)
+
+			require.True(t, mbd.GetDebug(ctx))
+			require.Equal(t, "/SerializedResponse", mbd.GetPath(ctx).Resource)
+			require.Equal(t, "/SerializedResponse", mbd.GetPath(ctx).Path)
+			require.Equal(t, "POST", mbd.GetPath(ctx).Method)
+			require.Equal(t, "application/json; charset=utf-8", mbd.GetHeaders(ctx).Get("Content-Type"))
+			require.Equal(t, []string{"application/json; charset=utf-8"}, mbd.GetHeaders(ctx).GetMulti("Content-Type"))
+			require.Empty(t, mbd.GetQueryString(ctx).Map())
+			require.Empty(t, mbd.GetQueryString(ctx).MapMulti())
+			require.Empty(t, mbd.GetPathParameters(ctx).Map())
+			require.Empty(t, mbd.GetStageVariables(ctx).Map())
+			require.NotEmpty(t, mbd.GetRequestContext(ctx).RequestID)
+
+			return &mbd.SerializedResponse{
+				ContentType:     "text/plain",
+				IsBase64Encoded: false,
+				Body:            "Hello world!",
+			}, nil
+		},
+		Assertion: func(t require.TestingT, statusCode int, headers map[string][]string, resp interface{}) {
+			response := resp.(*mbd.SerializedResponse)
+
+			require.Equal(t, http.StatusOK, statusCode)
+			require.Equal(t, &mbd.SerializedResponse{ContentType: "text/plain", IsBase64Encoded: false, Body: "Hello world!"}, response)
+		},
+	},
 }

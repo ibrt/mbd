@@ -77,6 +77,16 @@ func (r *localRunner) parseResponse(t *testing.T, respTemplate interface{}, out 
 		return nil
 	}
 
+	if _, ok := respTemplate.(mbd.SerializedResponse); ok {
+		resp := &mbd.SerializedResponse{
+			ContentType:     out.Headers["Content-Type"],
+			IsBase64Encoded: out.IsBase64Encoded,
+			Body:            out.Body,
+		}
+		r.printValue("Response", resp)
+		return resp
+	}
+
 	resp := reflect.New(reflect.TypeOf(respTemplate)).Interface()
 	require.NoError(t, json.Unmarshal([]byte(out.Body), resp))
 	r.printValue("Response", resp)
