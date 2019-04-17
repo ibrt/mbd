@@ -17,6 +17,10 @@ var (
 	defaultDecoder = schema.NewDecoder()
 )
 
+func init() {
+	defaultDecoder.IgnoreUnknownKeys(true)
+}
+
 // JSONRequestParser returns a RequestParser for JSON requests.
 func JSONRequestParser() RequestParser {
 	return func(_ context.Context, reqType reflect.Type, in *events.APIGatewayProxyRequest) (interface{}, error) { // RequestParser
