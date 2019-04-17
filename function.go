@@ -17,9 +17,13 @@ type Checker func(ctx context.Context, in *events.APIGatewayProxyRequest, req in
 // Handler implements a Lambda function handler.
 type Handler func(ctx context.Context, req interface{}) (resp interface{}, err error)
 
+// RequestParser describes a custom request parser. The default is JSON.
+type RequestParser func(context.Context, reflect.Type, *events.APIGatewayProxyRequest) (interface{}, error)
+
 // Function sets up a Lambda function handler.
 type Function struct {
 	reqType   reflect.Type
+	reqParser RequestParser
 	handler   Handler
 	debug     Debug
 	providers []Provider
@@ -38,6 +42,7 @@ func NewFunction(reqTemplate interface{}, handler Handler) *Function {
 
 	return &Function{
 		reqType:   reqType,
+		reqParser: JSONRequestParser(),
 		handler:   handler,
 		debug:     false,
 		providers: make([]Provider, 0),
@@ -47,6 +52,12 @@ func NewFunction(reqTemplate interface{}, handler Handler) *Function {
 // SetDebug enables or disables additional debug information. Default is disabled.
 func (e *Function) SetDebug(debug Debug) *Function {
 	e.debug = debug
+	return e
+}
+
+// SetRequestParser sets a custom RequestParser. Default is JSON.
+func (e *Function) SetRequestParser(reqParser RequestParser) *Function {
+	e.reqParser = reqParser
 	return e
 }
 
@@ -76,7 +87,7 @@ func (e *Function) Handler(ctx context.Context, in events.APIGatewayProxyRequest
 		ctx = provider(ctx)
 	}
 
-	req, err := parseRequest(ctx, e.reqType, &in)
+	req, err := e.reqParser(ctx, e.reqType, &in)
 	if err != nil {
 		return *adaptError(ctx, err), nil
 	}

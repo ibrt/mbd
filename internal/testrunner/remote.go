@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,6 +21,8 @@ import (
 	"testing"
 	"text/template"
 	"unicode"
+
+	"github.com/gorilla/schema"
 
 	"github.com/ibrt/mbd"
 
@@ -69,12 +72,17 @@ import (
 func main() {
 	testCase := testcases.GetTestCase("{{.Name}}")
 
-	mbd.NewFunction(testCase.ReqTemplate, testCase.Handler).
+	f := mbd.NewFunction(testCase.ReqTemplate, testCase.Handler).
 		SetDebug({{if .DisableDebug }}false{{else}}true{{end}}).
 		AddProviders(testrunner.RemoteTestingTProvider).
 		AddProviders(testCase.Providers...).
-		AddCheckers(testCase.Checkers...).
-		Start()
+		AddCheckers(testCase.Checkers...)
+
+	if testCase.FormReqParser {
+		f.SetRequestParser(mbd.FormRequestParser())
+	}
+
+	f.Start()
 }
 `
 
@@ -108,7 +116,7 @@ func (r *remoteRunner) Teardown(t *testing.T) {
 }
 
 func (r *remoteRunner) RunTest(t *testing.T, c *testcases.TestCase) {
-	httpResp, err := http.DefaultClient.Do(r.makeHTTPRequest(t, c.Name, c.Request))
+	httpResp, err := http.DefaultClient.Do(r.makeHTTPRequest(t, c.FormReqParser, c.Name, c.Request))
 	require.NoError(t, err)
 	resp := r.parseHTTPResponse(t, c.RespTemplate, httpResp)
 	c.Assertion(t, httpResp.StatusCode, httpResp.Header, resp)
@@ -173,17 +181,28 @@ func (r *remoteRunner) getStage() string {
 	return "cli"
 }
 
-func (r *remoteRunner) makeHTTPRequest(t *testing.T, name string, req interface{}) *http.Request {
+func (r *remoteRunner) makeHTTPRequest(t *testing.T, form bool, name string, req interface{}) *http.Request {
+	contentType := "application/json; charset=utf-8"
+	if form {
+		contentType = "application/x-www-form-urlencoded"
+	}
+
 	var body io.Reader
 	if req != nil {
-		buf, err := json.MarshalIndent(req, "", "  ")
-		require.NoError(t, err)
-		body = bytes.NewReader(buf)
+		if form {
+			v := url.Values{}
+			require.NoError(t, schema.NewEncoder().Encode(req, v))
+			body = strings.NewReader(v.Encode())
+		} else {
+			buf, err := json.MarshalIndent(req, "", "  ")
+			require.NoError(t, err)
+			body = bytes.NewReader(buf)
+		}
 	}
 
 	httpReq, err := http.NewRequest("POST", r.baseURL+name, body)
 	require.NoError(t, err)
-	httpReq.Header.Set("Content-Type", "application/json; charset=utf-8")
+	httpReq.Header.Set("Content-Type", contentType)
 
 	r.printHeader("Input")
 	buf, err := httputil.DumpRequestOut(httpReq, true)

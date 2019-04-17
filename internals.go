@@ -77,32 +77,6 @@ func getDefaultPublicMessage(statusCode int) string {
 	return "unknown"
 }
 
-func parseRequest(_ context.Context, reqType reflect.Type, in *events.APIGatewayProxyRequest) (interface{}, error) {
-	if in.IsBase64Encoded {
-		return nil, errors.Errorf("invalid IsBase64Encoded: expected 'false', got 'true'", invalidBody)
-	}
-
-	if reqType == noRequestBody {
-		if in.Body != "" {
-			return nil, errors.Errorf("unexpected Body", unexpectedBody)
-		}
-
-		return nil, nil
-	}
-
-	req := reflect.New(reqType).Interface()
-
-	dec := json.NewDecoder(strings.NewReader(in.Body))
-	dec.DisallowUnknownFields()
-	dec.UseNumber()
-
-	if err := dec.Decode(req); err != nil {
-		return nil, errors.Wrap(err, errors.Prefix("invalid Body"), invalidBody)
-	}
-
-	return req, nil
-}
-
 func adaptResponse(_ context.Context, statusCode int, resp interface{}) *events.APIGatewayProxyResponse {
 	out := &events.APIGatewayProxyResponse{
 		StatusCode: statusCode,

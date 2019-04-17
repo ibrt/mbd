@@ -14,7 +14,7 @@ import (
 
 // TestRequest is a request for test functions.
 type TestRequest struct {
-	Value string `json:"value"`
+	Value string `json:"value" schema:"value"`
 }
 
 // TestResponse is a response for test functions.
@@ -24,15 +24,16 @@ type TestResponse struct {
 
 // TestCase describes a test case.
 type TestCase struct {
-	Name         string
-	DisableDebug bool
-	ReqTemplate  interface{}
-	RespTemplate interface{}
-	Request      interface{}
-	Handler      mbd.Handler
-	Providers    []mbd.Provider
-	Checkers     []mbd.Checker
-	Assertion    func(require.TestingT, int, map[string][]string, interface{})
+	Name          string
+	DisableDebug  bool
+	ReqTemplate   interface{}
+	FormReqParser bool
+	RespTemplate  interface{}
+	Request       interface{}
+	Handler       mbd.Handler
+	Providers     []mbd.Provider
+	Checkers      []mbd.Checker
+	Assertion     func(require.TestingT, int, map[string][]string, interface{})
 }
 
 // GetTestCase returns the TestCase with the given name, panics if not found.
@@ -53,9 +54,10 @@ func GetTestCases() []*TestCase {
 
 var testCases = []*TestCase{
 	{
-		Name:         "HappyPath",
-		ReqTemplate:  TestRequest{},
-		RespTemplate: TestResponse{},
+		Name:          "HappyPath",
+		ReqTemplate:   TestRequest{},
+		FormReqParser: false,
+		RespTemplate:  TestResponse{},
 		Request: &TestRequest{
 			Value: "testValue",
 		},
@@ -86,9 +88,10 @@ var testCases = []*TestCase{
 		},
 	},
 	{
-		Name:         "MissingBody",
-		ReqTemplate:  TestRequest{},
-		RespTemplate: mbd.ErrorResponse{},
+		Name:          "MissingBody",
+		ReqTemplate:   TestRequest{},
+		FormReqParser: false,
+		RespTemplate:  mbd.ErrorResponse{},
 		Handler: func(ctx context.Context, req interface{}) (interface{}, error) {
 			return nil, nil
 		},
@@ -117,9 +120,10 @@ var testCases = []*TestCase{
 		},
 	},
 	{
-		Name:         "Error",
-		ReqTemplate:  TestRequest{},
-		RespTemplate: mbd.ErrorResponse{},
+		Name:          "Error",
+		ReqTemplate:   TestRequest{},
+		FormReqParser: false,
+		RespTemplate:  mbd.ErrorResponse{},
 		Request: &TestRequest{
 			Value: "testValue",
 		},
@@ -140,9 +144,10 @@ var testCases = []*TestCase{
 		},
 	},
 	{
-		Name:         "DefaultError",
-		ReqTemplate:  TestRequest{},
-		RespTemplate: mbd.ErrorResponse{},
+		Name:          "DefaultError",
+		ReqTemplate:   TestRequest{},
+		FormReqParser: false,
+		RespTemplate:  mbd.ErrorResponse{},
 		Request: &TestRequest{
 			Value: "testValue",
 		},
@@ -161,10 +166,11 @@ var testCases = []*TestCase{
 		},
 	},
 	{
-		Name:         "NoDebugError",
-		DisableDebug: true,
-		ReqTemplate:  TestRequest{},
-		RespTemplate: mbd.ErrorResponse{},
+		Name:          "NoDebugError",
+		DisableDebug:  true,
+		ReqTemplate:   TestRequest{},
+		FormReqParser: false,
+		RespTemplate:  mbd.ErrorResponse{},
 		Request: &TestRequest{
 			Value: "testValue",
 		},
@@ -181,9 +187,10 @@ var testCases = []*TestCase{
 		},
 	},
 	{
-		Name:         "Panic",
-		ReqTemplate:  TestRequest{},
-		RespTemplate: mbd.ErrorResponse{},
+		Name:          "Panic",
+		ReqTemplate:   TestRequest{},
+		FormReqParser: false,
+		RespTemplate:  mbd.ErrorResponse{},
 		Request: &TestRequest{
 			Value: "testValue",
 		},
@@ -206,9 +213,10 @@ var testCases = []*TestCase{
 		},
 	},
 	{
-		Name:         "DefaultPanic",
-		ReqTemplate:  TestRequest{},
-		RespTemplate: mbd.ErrorResponse{},
+		Name:          "DefaultPanic",
+		ReqTemplate:   TestRequest{},
+		FormReqParser: false,
+		RespTemplate:  mbd.ErrorResponse{},
 		Request: &TestRequest{
 			Value: "testValue",
 		},
@@ -229,9 +237,10 @@ var testCases = []*TestCase{
 		},
 	},
 	{
-		Name:         "Checker",
-		ReqTemplate:  TestRequest{},
-		RespTemplate: mbd.ErrorResponse{},
+		Name:          "Checker",
+		ReqTemplate:   TestRequest{},
+		FormReqParser: false,
+		RespTemplate:  mbd.ErrorResponse{},
 		Request: &TestRequest{
 			Value: "testValue",
 		},
@@ -256,9 +265,10 @@ var testCases = []*TestCase{
 		},
 	},
 	{
-		Name:         "SerializedResponse",
-		ReqTemplate:  TestRequest{},
-		RespTemplate: mbd.SerializedResponse{},
+		Name:          "SerializedResponse",
+		ReqTemplate:   TestRequest{},
+		FormReqParser: false,
+		RespTemplate:  mbd.SerializedResponse{},
 		Request: &TestRequest{
 			Value: "testValue",
 		},
@@ -288,6 +298,40 @@ var testCases = []*TestCase{
 
 			require.Equal(t, http.StatusOK, statusCode)
 			require.Equal(t, &mbd.SerializedResponse{ContentType: "text/plain", IsBase64Encoded: false, Body: "Hello world!"}, response)
+		},
+	},
+	{
+		Name:          "FormRequestParser",
+		ReqTemplate:   TestRequest{},
+		FormReqParser: true,
+		RespTemplate:  TestResponse{},
+		Request: &TestRequest{
+			Value: "testValue",
+		},
+		Handler: func(ctx context.Context, req interface{}) (interface{}, error) {
+			t := testcontext.GetTestingT(ctx)
+
+			require.True(t, mbd.GetDebug(ctx))
+			require.Equal(t, "/FormRequestParser", mbd.GetPath(ctx).Resource)
+			require.Equal(t, "/FormRequestParser", mbd.GetPath(ctx).Path)
+			require.Equal(t, "POST", mbd.GetPath(ctx).Method)
+			require.Equal(t, "application/x-www-form-urlencoded", mbd.GetHeaders(ctx).Get("Content-Type"))
+			require.Equal(t, []string{"application/x-www-form-urlencoded"}, mbd.GetHeaders(ctx).GetMulti("Content-Type"))
+			require.Empty(t, mbd.GetQueryString(ctx).Map())
+			require.Empty(t, mbd.GetQueryString(ctx).MapMulti())
+			require.Empty(t, mbd.GetPathParameters(ctx).Map())
+			require.Empty(t, mbd.GetStageVariables(ctx).Map())
+			require.NotEmpty(t, mbd.GetRequestContext(ctx).RequestID)
+
+			return &TestResponse{
+				Value: req.(*TestRequest).Value,
+			}, nil
+		},
+		Assertion: func(t require.TestingT, statusCode int, headers map[string][]string, resp interface{}) {
+			response := resp.(*TestResponse)
+
+			require.Equal(t, http.StatusOK, statusCode)
+			require.Equal(t, &TestResponse{Value: "testValue"}, response)
 		},
 	},
 }
