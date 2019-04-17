@@ -21,6 +21,8 @@ import (
 	"text/template"
 	"unicode"
 
+	"github.com/ibrt/mbd"
+
 	"github.com/ibrt/errors"
 	"github.com/ibrt/mbd/internal/testcases"
 	"github.com/ibrt/mbd/internal/testcontext"
@@ -205,6 +207,16 @@ func (r *remoteRunner) parseHTTPResponse(t *testing.T, respTemplate interface{},
 		require.Empty(t, body)
 		r.printValue("Response", nil)
 		return nil
+	}
+
+	if _, ok := respTemplate.(mbd.SerializedResponse); ok {
+		resp := &mbd.SerializedResponse{
+			ContentType:     httpResp.Header.Get("Content-Type"),
+			IsBase64Encoded: false,
+			Body:            string(body),
+		}
+		r.printValue("Response", resp)
+		return resp
 	}
 
 	resp := reflect.New(reflect.TypeOf(respTemplate)).Interface()
